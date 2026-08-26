@@ -56,6 +56,13 @@ sinon vous perdez la moitié des performances sans raison.
 engine »*). Placez le projet dans votre dossier utilisateur Windows, pas dans un
 partage réseau : les volumes montés y sont beaucoup plus lents.
 
+> **Toutes les commandes de ce guide tiennent sur une seule ligne**, sans caractère
+> de continuation. Elles se collent telles quelles dans PowerShell, dans l'invite de
+> commandes, dans le Terminal macOS et dans un shell WSL. Si vous rencontrez ailleurs
+> des commandes coupées par un `\` en fin de ligne, c'est une convention bash/zsh :
+> PowerShell utilise l'accent grave `` ` `` et `cmd.exe` le circonflexe `^`. Le plus
+> simple reste de recoller la commande sur une seule ligne.
+
 Vérification :
 
 ```bash
@@ -112,12 +119,10 @@ vous devez voir passer le DDL.
 
 ```bash
 # 1. Le compte applicatif (connecté en SYSTEM sur la PDB)
-docker compose exec oracle-db sqlplus \
-    system/Oracle3GB_2026@//localhost:1521/FREEPDB1 @/sql/10_utilisateur.sql
+docker compose exec oracle-db sqlplus system/Oracle3GB_2026@//localhost:1521/FREEPDB1 @/sql/10_utilisateur.sql
 
 # 2. Le schéma applicatif (connecté AVEC le compte applicatif)
-docker compose exec oracle-db sqlplus \
-    app3gb/App3GB_2026@//localhost:1521/FREEPDB1 @/sql/20_schema_applicatif.sql
+docker compose exec oracle-db sqlplus app3gb/App3GB_2026@//localhost:1521/FREEPDB1 @/sql/20_schema_applicatif.sql
 ```
 
 > Remplacez les mots de passe si vous avez modifié le `.env`.
@@ -138,8 +143,7 @@ Faites les quatre tests dans l'ordre : chacun ajoute un maillon à la chaîne.
 **Test 1 — Oracle répond**
 
 ```bash
-docker compose exec oracle-db sqlplus -s \
-    app3gb/App3GB_2026@//localhost:1521/FREEPDB1 @/sql/99_verification.sql
+docker compose exec oracle-db sqlplus -s app3gb/App3GB_2026@//localhost:1521/FREEPDB1 @/sql/99_verification.sql
 ```
 
 Résultat attendu : `PDB courante = FREEPDB1`, `Usager connecte = APP3GB`,

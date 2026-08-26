@@ -5,8 +5,7 @@
 -- automatiquement : on l'execute a la main, connecte en SYSTEM sur la
 -- PDB FREEPDB1, une fois que le conteneur Oracle est demarre.
 --
---   docker compose exec oracle-db sqlplus \
---       system/<ORACLE_PASSWORD>@//localhost:1521/FREEPDB1 @/sql/10_utilisateur.sql
+--   docker compose exec oracle-db sqlplus system/<ORACLE_PASSWORD>@//localhost:1521/FREEPDB1 @/sql/10_utilisateur.sql
 --
 -- Il suppose que 001_schema_base.sql a deja cree TBS_3GB, R_APP_3GB
 -- et P_COURS_3GB.

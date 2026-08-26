@@ -7,6 +7,12 @@ environnement à la main, dans l'ordre.
 Objectif : comprendre ce que Compose fait à votre place. Vous n'aurez pas à
 retaper ces commandes en laboratoire.
 
+> **Windows.** Les commandes ci-dessous sont écrites à la mode bash/zsh : le `\` en
+> fin de ligne est un caractère de continuation, et `$(pwd)` désigne le répertoire
+> courant. En PowerShell, la continuation est l'accent grave `` ` `` et le répertoire
+> courant s'écrit `${PWD}`; dans `cmd.exe`, c'est `^` et `%cd%`. Le plus sûr : recollez
+> chaque commande sur une seule ligne et remplacez `$(pwd)` par `${PWD}`.
+
 ---
 
 ## 1. Le réseau

@@ -6,8 +6,7 @@
 -- ainsi a app3gb, ce qui evite les synonymes et les prefixes de schema
 -- dans le code Node.
 --
---   docker compose exec oracle-db sqlplus \
---       app3gb/<APP_USER_PASSWORD>@//localhost:1521/FREEPDB1 @/sql/20_schema_applicatif.sql
+--   docker compose exec oracle-db sqlplus app3gb/<APP_USER_PASSWORD>@//localhost:1521/FREEPDB1 @/sql/20_schema_applicatif.sql
 --
 -- C'est ce fichier que l'on remplace par le modele de donnees du cours.
 -- =====================================================================
