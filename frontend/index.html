@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3GB - Test de l'environnement</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header>
+    <h1>Cours 3GB &mdash; API REST</h1>
+    <p class="sous-titre">Page de validation de l'environnement Docker</p>
+  </header>
+
+  <main>
+    <!-- Etat de la chaine complete : navigateur -> nginx -> node -> oracle -->
+    <section id="sante" class="carte">
+      <h2>1. Etat de la chaine</h2>
+      <p><button id="btn-sante">Verifier</button></p>
+      <pre id="sortie-sante">Cliquez sur « Verifier ».</pre>
+    </section>
+
+    <!-- Lecture : GET /api/etudiants -->
+    <section class="carte">
+      <h2>2. Lecture des donnees</h2>
+      <p><button id="btn-liste">GET /api/etudiants</button></p>
+      <table id="table-etudiants">
+        <thead>
+          <tr><th>Id</th><th>Matricule</th><th>Nom</th><th>Prenom</th><th>Courriel</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- Ecriture : POST /api/etudiants -->
+    <section class="carte">
+      <h2>3. Ecriture</h2>
+      <form id="form-etudiant">
+        <input name="matricule" placeholder="Matricule" required>
+        <input name="nom"       placeholder="Nom"       required>
+        <input name="prenom"    placeholder="Prenom"    required>
+        <input name="courriel"  placeholder="Courriel"  type="email">
+        <button type="submit">POST /api/etudiants</button>
+      </form>
+      <pre id="sortie-post"></pre>
+    </section>
+  </main>
+
+  <footer>
+    <p>
+      Le navigateur ne parle qu'a <code>nginx</code> sur le port 8080.
+      Les appels <code>/api/&hellip;</code> sont relayes vers le conteneur
+      <code>api</code> sur le port 3010 &mdash; meme origine, donc aucun CORS.
+    </p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+# =====================================================================
+# Cours 3GB - API REST : environnement de laboratoire (3 conteneurs)
+#
+#   oracle-db  Oracle Database 23ai Free   -> port hote 1521
+#   api        Node.js + node-oracledb     -> port hote 3010
+#   web        nginx (statique + proxy)    -> port hote 8080
+#
+# Demarrage : docker compose up -d
+# Arret     : docker compose down          (les donnees Oracle survivent)
+# Remise a zero complete : docker compose down -v
+# =====================================================================
+
+name: cours-3gb
+
+services:
+
+  # -------------------------------------------------------------------
+  # 1. Base de donnees Oracle
+  # -------------------------------------------------------------------
+  oracle-db:
+    image: gvenzl/oracle-free:23-slim
+    container_name: 3gb-oracle
+    restart: unless-stopped
+    environment:
+      # Mot de passe des comptes SYS et SYSTEM (obligatoire)
+      ORACLE_PASSWORD: ${ORACLE_PASSWORD}
+    ports:
+      # Publie pour SQL Developer / DBeaver sur le poste de l'etudiant
+      - "${ORACLE_PORT:-1521}:1521"
+    volumes:
+      # Persistance des fichiers de la base
+      - oracle-data:/opt/oracle/oradata
+      # Scripts joues UNE SEULE FOIS, a la toute premiere creation de la base
+      - ./oracle/init:/container-entrypoint-initdb.d:ro
+      # Scripts applicatifs joues MANUELLEMENT par la suite (voir README)
+      - ./oracle/app:/sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      # Oracle prend 1 a 3 minutes au tout premier demarrage : on ne
+      # declare pas le conteneur malade pendant cette periode.
+      start_period: 180s
+    networks:
+      - 3gb-net
+
+  # -------------------------------------------------------------------
+  # 2. API REST Node.js
+  # -------------------------------------------------------------------
+  api:
+    build: ./backend
+    container_name: 3gb-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3010
+      # Vu du reseau Docker : le nom du service, PAS localhost.
+      DB_CONNECT_STRING: oracle-db:1521/FREEPDB1
+      DB_USER: ${APP_USER}
+      DB_PASSWORD: ${APP_USER_PASSWORD}
+    ports:
+      # Publie pour que Postman / curl frappent l'API directement
+      - "${API_PORT:-3010}:3010"
+    volumes:
+      # Volume partage backend : l'etudiant edite dans VS Code, le
+      # conteneur voit le changement (node --watch redemarre tout seul).
+      # On ne monte QUE ./backend/src : node_modules reste celui de
+      # l'image, compile pour la bonne architecture (amd64 ou arm64).
+      - ./backend/src:/app/src
+    depends_on:
+      oracle-db:
+        # L'API ne demarre pas avant qu'Oracle reponde au healthcheck
+        condition: service_healthy
+    networks:
+      - 3gb-net
+
+  # -------------------------------------------------------------------
+  # 3. Serveur web nginx
+  # -------------------------------------------------------------------
+  web:
+    image: nginx:1.27-alpine
+    container_name: 3gb-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    volumes:
+      # Volume partage frontend : HTML / CSS / JS servis tels quels,
+      # aucun rebuild, un simple rafraichissement du navigateur suffit.
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+    networks:
+      - 3gb-net
+
+volumes:
+  oracle-data:
+
+networks:
+  3gb-net:
+    driver: bridge

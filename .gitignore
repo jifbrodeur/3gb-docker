@@ -1,0 +1,11 @@
+# Secrets : jamais versionne
+.env
+
+# Dependances : installees dans l'image, pas sur le poste
+node_modules/
+npm-debug.log*
+
+# Divers
+.DS_Store
+Thumbs.db
+.vscode/
