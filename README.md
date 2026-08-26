@@ -258,6 +258,22 @@ le CDB, pas la PDB applicative).
 Le schéma applicatif n'a pas été créé, ou il a été créé sous `SYSTEM` au lieu de
 `app3gb`. Vérifiez : `SELECT owner, table_name FROM all_tables WHERE table_name = 'ETUDIANT';`
 
+**`ORA-01110` + `ORA-27037: unable to obtain file status` sur `tbs_3gb01.dbf`**
+Le fichier de données du tablespace a été créé **hors du volume monté** (dans
+`$ORACLE_HOME/dbs`, à l'intérieur du conteneur) : il survit à un `restart`, mais
+disparaît dès que le conteneur est recréé, et la base rouvre sans son tablespace.
+Vérifiez où il se trouve :
+
+```sql
+SELECT tablespace_name, file_name FROM dba_data_files WHERE tablespace_name = 'TBS_3GB';
+```
+
+Le chemin **doit** commencer par `/opt/oracle/oradata/`. S'il pointe vers `.../dbs/`,
+la base est à reconstruire : `docker compose down -v && docker compose up -d`, puis
+refaire l'étape 4. Depuis la correction du 26 août 2026, `001_schema_base.sql` déduit
+le bon répertoire automatiquement et affiche un avertissement dans les journaux si le
+fichier atterrit au mauvais endroit.
+
 **`502 Bad Gateway` sur `http://localhost:8080/api/...`**
 nginx est debout, l'API ne l'est pas. `docker compose logs api` — c'est en général le
 pool Oracle qui n'a pas pu s'ouvrir.
