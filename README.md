@@ -57,11 +57,23 @@ engine »*). Placez le projet dans votre dossier utilisateur Windows, pas dans u
 partage réseau : les volumes montés y sont beaucoup plus lents.
 
 > **Toutes les commandes de ce guide tiennent sur une seule ligne**, sans caractère
-> de continuation. Elles se collent telles quelles dans PowerShell, dans l'invite de
-> commandes, dans le Terminal macOS et dans un shell WSL. Si vous rencontrez ailleurs
-> des commandes coupées par un `\` en fin de ligne, c'est une convention bash/zsh :
-> PowerShell utilise l'accent grave `` ` `` et `cmd.exe` le circonflexe `^`. Le plus
-> simple reste de recoller la commande sur une seule ligne.
+> de continuation, et leurs arguments sont entre **guillemets doubles**. Elles se
+> collent telles quelles dans PowerShell, dans l'invite de commandes, dans le Terminal
+> macOS et dans un shell WSL.
+>
+> Trois pièges PowerShell valent la peine d'être connus, parce qu'ils reviennent dès
+> qu'on sort de ce guide :
+>
+> | Piège | Symptôme | Parade |
+> |---|---|---|
+> | `\` en fin de ligne | la commande est tronquée | continuation = `` ` `` en PowerShell, `^` en `cmd.exe` — ou tout sur une ligne |
+> | `@` en début d'argument | `Jeton non reconnu dans le texte source` | entourer l'argument de guillemets doubles : `"@/sql/x.sql"` |
+> | `curl` | sortie inattendue, options refusées | c'est un alias d'`Invoke-WebRequest` en PowerShell 5.1 — écrire `curl.exe` |
+>
+> Les guillemets **doubles** sont le seul style compris par les quatre interpréteurs.
+> N'utilisez pas de guillemets simples : `cmd.exe` les transmettrait tels quels dans
+> l'argument. Corollaire pour le `.env` : évitez le caractère `$` dans vos mots de
+> passe, il est interprété entre guillemets doubles par PowerShell comme par bash.
 
 Vérification :
 
@@ -119,10 +131,10 @@ vous devez voir passer le DDL.
 
 ```bash
 # 1. Le compte applicatif (connecté en SYSTEM sur la PDB)
-docker compose exec oracle-db sqlplus system/Oracle3GB_2026@//localhost:1521/FREEPDB1 @/sql/10_utilisateur.sql
+docker compose exec oracle-db sqlplus "system/Oracle3GB_2026@//localhost:1521/FREEPDB1" "@/sql/10_utilisateur.sql"
 
 # 2. Le schéma applicatif (connecté AVEC le compte applicatif)
-docker compose exec oracle-db sqlplus app3gb/App3GB_2026@//localhost:1521/FREEPDB1 @/sql/20_schema_applicatif.sql
+docker compose exec oracle-db sqlplus "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/20_schema_applicatif.sql"
 ```
 
 > Remplacez les mots de passe si vous avez modifié le `.env`.
@@ -143,7 +155,7 @@ Faites les quatre tests dans l'ordre : chacun ajoute un maillon à la chaîne.
 **Test 1 — Oracle répond**
 
 ```bash
-docker compose exec oracle-db sqlplus -s app3gb/App3GB_2026@//localhost:1521/FREEPDB1 @/sql/99_verification.sql
+docker compose exec oracle-db sqlplus -s "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/99_verification.sql"
 ```
 
 Résultat attendu : `PDB courante = FREEPDB1`, `Usager connecte = APP3GB`,
@@ -161,7 +173,7 @@ Résultat attendu : `PDB courante = FREEPDB1`, `Usager connecte = APP3GB`,
 **Test 2 — l'API parle à Oracle**
 
 ```bash
-curl http://localhost:3010/api/sante
+curl.exe http://localhost:3010/api/sante
 ```
 
 Résultat attendu : `{"statut":"ok","oracle":{...,"PDB":"FREEPDB1","USAGER":"APP3GB"}}`
@@ -169,7 +181,7 @@ Résultat attendu : `{"statut":"ok","oracle":{...,"PDB":"FREEPDB1","USAGER":"APP
 **Test 3 — nginx relaie vers l'API**
 
 ```bash
-curl http://localhost:8080/api/etudiants
+curl.exe http://localhost:8080/api/etudiants
 ```
 
 La même liste que le test 2, mais passée par nginx. Si le test 2 fonctionne et pas

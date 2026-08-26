@@ -5,7 +5,7 @@
 -- repond, que la PDB est la bonne, que le compte applicatif est actif
 -- et que le schema applicatif existe.
 --
---   docker compose exec oracle-db sqlplus -s app3gb/App3GB_2026@//localhost:1521/FREEPDB1 @/sql/99_verification.sql
+--   docker compose exec oracle-db sqlplus -s "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/99_verification.sql"
 --
 -- Aucune redirection d'entree standard : la commande est identique sur
 -- macOS, Linux, PowerShell et l'invite de commandes Windows.
