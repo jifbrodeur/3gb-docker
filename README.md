@@ -139,10 +139,20 @@ Faites les quatre tests dans l'ordre : chacun ajoute un maillon à la chaîne.
 
 ```bash
 docker compose exec oracle-db sqlplus -s \
-    app3gb/App3GB_2026@//localhost:1521/FREEPDB1 <<< "SELECT COUNT(*) FROM etudiant; EXIT;"
+    app3gb/App3GB_2026@//localhost:1521/FREEPDB1 @/sql/99_verification.sql
 ```
 
-Résultat attendu : `3`.
+Résultat attendu : `PDB courante = FREEPDB1`, `Usager connecte = APP3GB`,
+`Lignes dans ETUDIANT = 3`.
+
+> **Pourquoi un fichier `.sql` plutôt qu'une requête directe ?** On pourrait être
+> tenté d'écrire `... sqlplus -s app3gb/...@//... <<< "SELECT ..."`. Deux problèmes :
+> le here-string `<<<` n'existe qu'en bash/zsh (donc pas en PowerShell), et
+> `docker compose exec` alloue un TTY par défaut, ce qui est incompatible avec une
+> entrée standard redirigée — d'où l'erreur `cannot attach stdin to a TTY-enabled
+> container`. Si vous tenez à passer du SQL par l'entrée standard, il faut ajouter
+> l'option `-T` : `docker compose exec -T oracle-db sqlplus ...`. Un fichier `.sql`
+> évite les deux pièges et fonctionne à l'identique sur tous les postes.
 
 **Test 2 — l'API parle à Oracle**
 
@@ -260,6 +270,12 @@ rechargement forcé : Ctrl-Maj-R (Windows) ou Cmd-Maj-R (Mac).
 Vérifiez que vous éditez bien `backend/src/` et non `backend/`. Sur Windows, vérifiez
 aussi le partage de fichiers de Docker Desktop.
 
+**`cannot attach stdin to a TTY-enabled container because stdin is not a terminal`**
+Vous avez redirigé l'entrée standard (`<<<`, `<`, ou un tube) vers un
+`docker compose exec` qui alloue un TTY. Ajoutez `-T` :
+`docker compose exec -T oracle-db sqlplus ...`. Ou mieux, passez par un fichier
+`.sql` avec `@/sql/mon_script.sql`, ce qui fonctionne partout sans option.
+
 **Le premier `docker compose up` prend une éternité**
 Le téléchargement de l'image Oracle représente environ 2 Go, puis la création de la
 base 2 à 4 minutes. C'est normal, et ça n'arrive qu'une fois. Faites-le **avant** le
@@ -282,7 +298,8 @@ premier cours, pas pendant.
 │   │   └── 001_schema_base.sql   AUTO, une seule fois : tablespace, rôle, profil
 │   └── app/
 │       ├── 10_utilisateur.sql    MANUEL : compte applicatif
-│       └── 20_schema_applicatif.sql  MANUEL : tables + données de test
+│       ├── 20_schema_applicatif.sql  MANUEL : tables + données de test
+│       └── 99_verification.sql   MANUEL : test 1 de validation
 ├── backend/
 │   ├── Dockerfile
 │   ├── package.json
