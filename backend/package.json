@@ -1,16 +1,17 @@
 {
-  "name": "cours-3gb-api",
-  "version": "1.0.0",
-  "description": "API REST du cours 3GB - Node.js + Oracle 23ai Free",
+  "name": "api-3gb",
+  "version": "5.0.0",
+  "description": "API REST du cours 3GB - Express + Oracle 23ai Free (conversion de serveur-APIv4)",
   "type": "module",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js"
+    "start": "node --watch src/server.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "oracledb": "^6.9.0"
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "oracledb": "^6.9.0",
+    "winston": "^3.17.0"
   },
   "engines": {
     "node": ">=20"

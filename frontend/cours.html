@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Formulaire de cours</title>
+  <!-- Inclure le fichier css externe -->
+  <link rel="stylesheet" type="text/css" href="cours.css" />
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>Gestion des Cours</h1>
+    </header>
+
+    <main class="card">
+      <!-- Section Recherche -->
+      <section id="searchSection" class="form-section">
+        <h2>Rechercher un cours</h2>
+        <div class="input-group">
+          <label for="ID_COURS">ID du cours</label>
+          <div class="search-row">
+            <input type="text" id="ID_COURS" name="ID_COURS" placeholder="Ex: 101" />
+            <button type="button" id="searchButton" class="btn btn-primary">
+              <span class="icon">🔍</span> Rechercher
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <hr class="divider" />
+
+      <!-- Section Détails (Formulaire) -->
+      <section id="detailsSection" class="form-section">
+        <div class="header-row">
+          <h2>Détails du cours</h2>
+          <button type="button" id="newButton" class="btn btn-secondary">
+            <span class="icon">➕</span> Nouveau Cours
+          </button>
+        </div>
+
+        <form id="jsonForm">
+          <div class="form-group">
+            <label for="NOM_COURS">Nom du cours</label>
+            <input type="text" id="NOM_COURS" name="NOM_COURS" placeholder="Nom du cours" />
+          </div>
+
+          <div class="form-group">
+            <label for="DESCRIPTION_COURS">Description</label>
+            <input type="text" id="DESCRIPTION_COURS" name="DESCRIPTION_COURS" placeholder="Description courte" />
+          </div>
+
+          <div class="form-group">
+            <label for="CREDIT">Crédits</label>
+            <input type="text" id="CREDIT" name="CREDIT" placeholder="Ex: 3" />
+            <span id="erreurCREDIT" class="error-message"></span>
+          </div>
+
+          <!-- Zone de messages -->
+          <div id="messages" class="message-box"></div>
+
+          <!-- Actions -->
+          <div class="action-buttons">
+            <button type="button" id="saveButton" class="btn btn-success">
+              <span class="icon">💾</span> Enregistrer
+            </button>
+            <button type="button" id="deleteButton" class="btn btn-danger" disabled>
+              <span class="icon">🗑️</span> Supprimer
+            </button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <!-- Aide (Details/Summary) -->
+    <details class="help-box">
+      <summary>Aide en ligne</summary>
+      <div>
+        <p><strong>Rechercher :</strong> Entrez un ID et cliquez sur la loupe.</p>
+        <p><strong>Créer :</strong> Cliquez sur "Nouveau Cours", remplissez les champs et enregistrez.</p>
+        <p><strong>Modifier :</strong> Recherchez un cours, modifiez les champs et enregistrez.</p>
+      </div>
+    </details>
+  </div>
+
+  <!-- Dialog Confirmation Suppression -->
+  <dialog id="dialogSupprimer" class="modal">
+    <form method="dialog" class="modal-content">
+      <h3>Confirmation</h3>
+      <p>Voulez-vous vraiment supprimer ce cours ?</p>
+      <div class="modal-actions">
+        <button type="submit" value="oui" class="btn btn-danger">Oui, supprimer</button>
+        <button type="submit" value="non" class="btn btn-secondary">Annuler</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Inclure le fichier JavaScript externe -->
+  <script type="module" src="cours.js"></script>
+</body>
+
+</html>
