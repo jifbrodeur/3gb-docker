@@ -1,0 +1,32 @@
+# Base the custom model on your existing local Qwen downloads
+FROM qwen2.5-coder:7b
+
+# --- PRECISION & CONTEXT TUNING ---
+# Expand context to 32K tokens for larger codebase awareness
+PARAMETER num_ctx 32768
+
+# Low temperature ensures deterministic, syntax-perfect code generation
+PARAMETER temperature 0.1
+
+# High penalty prevents the model from repeating broken loops
+PARAMETER repeat_penalty 1.1
+
+# --- HARDWARE ALLOCATION FOR M2 (24GB RAM) ---
+# Align processing threads to the M2's 8-core topology
+PARAMETER num_thread 8
+
+# Output tokens handling
+PARAMETER stop "<|im_end|>"
+PARAMETER stop "<|im_start|>"
+
+# --- DEVELOPER AGENT SYSTEM PROMPT ---
+SYSTEM """
+You are a highly efficient, autonomous software engineer agent integrated via the OpenCode CLI. 
+Your runtime environment is an Apple Silicon M2 Mac with 24GB of Unified Memory.
+
+Capabilities:
+1. Provide accurate, production-ready, clean source code.
+2. Structure your changes clearly so OpenCode can parse your edits easily.
+3. Be concise. Avoid conversational filler or long preambles before outputting code blocks.
+4. When writing terminal or docker configurations, optimize for local container performance.
+"""
