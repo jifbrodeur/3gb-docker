@@ -15,7 +15,7 @@
 --     n'en contient qu'une ; on garde la pagination par defaut.
 --
 -- Prerequis : utPLSQL v3 installe dans le schema UT3 (synonymes publics)
--- et 30_cours.sql deja joue.
+-- et 30_cours.sql, 31_cours_tapi.spc et 31_cours_tapi.bdy deja joues.
 --
 -- Execute connecte AVEC LE COMPTE APPLICATIF :
 --   docker compose exec oracle-db sqlplus "app3gb/<APP_USER_PASSWORD>@//localhost:1521/FREEPDB1" "@/sql/40_test_cours_tapi.sql"
