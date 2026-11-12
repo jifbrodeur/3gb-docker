@@ -21,8 +21,10 @@ Guide d'installation pour les postes Windows (x86) et Mac (Apple Silicon).
  DBeaver                             │    service : FREEPDB1                │
                                      └──────────────────────────────────────┘
 
-  Volumes partagés :  ./frontend  →  nginx   (HTML / CSS / JS)
-                      ./backend/src → api    (sources Node)
+  Volumes partagés :  ./frontend     →  nginx  (HTML / CSS / JS)
+                      ./backend/logs ←  api    (journaux winston)
+  Synchronisé :       ./backend/src  →  api    (docker compose up --watch)
+  Ports publiés sur 127.0.0.1 seulement : invisibles depuis le réseau du collège.
 ```
 
 Trois choses à retenir, et ce sont les trois sources de confusion classiques :
@@ -95,9 +97,16 @@ cd 3gb-docker
 # 2. Créer le fichier de configuration
 cp .env.example .env        # Windows : copy .env.example .env
 
-# 3. Démarrer les trois conteneurs
-docker compose up -d
+# 3. Démarrer les trois conteneurs ET la synchronisation du code Node
+docker compose up -d --watch
 ```
+
+> **Pourquoi `--watch` ?** Le dossier `backend/src` n'est **pas** monté dans le
+> conteneur : sur Windows, une sauvegarde dans VS Code ne serait jamais vue par
+> Node. Avec `--watch`, Docker Compose surveille votre poste et **copie** chaque
+> fichier modifié dans le conteneur, où `node --watch-path=src` redémarre le
+> serveur. Sans `--watch`, l'API tourne avec le code de la dernière construction
+> de l'image : vos modifications n'ont aucun effet.
 
 Au **premier** démarrage, Oracle crée la base : comptez **2 à 4 minutes**. Suivez
 la progression :
@@ -209,9 +218,13 @@ Ouvrez <http://localhost:8080> et cliquez sur les trois boutons de la page.
 | Ce que vous modifiez | Ce qu'il faut faire |
 |---|---|
 | `frontend/*.html`, `*.js`, `*.css` | Rien — rafraîchir le navigateur |
-| `backend/src/*.js` | Rien — `node --watch` redémarre le serveur |
-| `backend/package.json` (nouvelle dépendance) | `docker compose up -d --build api` |
+| `backend/src/*.js` | Rien, **si** `docker compose up -d --watch` tourne — le fichier est copié et le serveur redémarre |
+| `backend/package.json` (nouvelle dépendance) | Rien sous `--watch` (l'image est reconstruite) ; sinon `docker compose up -d --build api` |
 | `nginx/default.conf` | `docker compose restart web` |
+
+Les journaux de l'API s'écrivent dans **`backend/logs/serveur.log`**, sur votre
+poste : ouvrez-le dans VS Code, Notepad ou TextEdit. `docker compose logs -f api`
+affiche les mêmes lignes, en couleurs.
 | `oracle/app/*.sql` | Rejouer le script avec `docker compose exec` |
 | `.env` | `docker compose up -d` (recrée les conteneurs) |
 
@@ -299,8 +312,9 @@ Le `Cache-Control: no-store` de `nginx/default.conf` devrait l'empêcher. Sinon,
 rechargement forcé : Ctrl-Maj-R (Windows) ou Cmd-Maj-R (Mac).
 
 **Mes modifications dans `backend/src` n'ont aucun effet**
-Vérifiez que vous éditez bien `backend/src/` et non `backend/`. Sur Windows, vérifiez
-aussi le partage de fichiers de Docker Desktop.
+La synchronisation ne tourne pas : relancez `docker compose up -d --watch` (au
+démarrage, tout `src/` est recopié, rien n'est perdu). Vérifiez aussi que vous
+éditez bien `backend/src/` et non `backend/`.
 
 **`cannot attach stdin to a TTY-enabled container because stdin is not a terminal`**
 Vous avez redirigé l'entrée standard (`<<<`, `<`, ou un tube) vers un

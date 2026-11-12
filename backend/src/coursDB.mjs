@@ -18,7 +18,9 @@ export async function getCours(p_id_cours) {
          :reto := cours_tapi.get_cours(:id_cours);
        END;`,
       {
-        reto: { dir: oracledb.BIND_OUT, type: oracledb.STRING, maxSize: 4000 },
+        // 32767 : taille max d'un VARCHAR2 en PL/SQL. Avec 4000, la liste
+        // complete des cours depasse vite la limite (ORA-06502).
+        reto: { dir: oracledb.BIND_OUT, type: oracledb.STRING, maxSize: 32767 },
         // null : cours_tapi.get_cours retourne tous les cours
         id_cours: p_id_cours ?? null,
       }

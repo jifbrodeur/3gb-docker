@@ -5,7 +5,8 @@
 #   api        Node.js + node-oracledb     -> port hote 3010
 #   web        nginx (statique + proxy)    -> port hote 8080
 #
-# Demarrage : docker compose up -d
+# Demarrage : docker compose up -d --watch   (ou --watch sans -d pour
+#             voir les logs ; Ctrl-C arrete la synchro, pas la base)
 # Arret     : docker compose down          (les donnees Oracle survivent)
 # Remise a zero complete : docker compose down -v
 # =====================================================================
@@ -18,15 +19,20 @@ services:
   # 1. Base de donnees Oracle
   # -------------------------------------------------------------------
   oracle-db:
-    image: gvenzl/oracle-free:23-slim
+    # Version epinglee : tous les etudiants ont la meme base. Ne pas changer
+    # en cours de session : un volume cree par une version n'est pas
+    # garanti lisible par une autre (docker compose down -v pour repartir).
+    image: gvenzl/oracle-free:23.26.2-slim
     container_name: 3gb-oracle
     restart: unless-stopped
     environment:
       # Mot de passe des comptes SYS et SYSTEM (obligatoire)
       ORACLE_PASSWORD: ${ORACLE_PASSWORD}
     ports:
-      # Publie pour SQL Developer / DBeaver sur le poste de l'etudiant
-      - "${ORACLE_PORT:-1521}:1521"
+      # Publie pour SQL Developer / DBeaver sur le poste de l'etudiant.
+      # 127.0.0.1 : accessible depuis CE poste seulement, pas depuis le
+      # reseau du college (tous les .env ont le meme mot de passe SYSTEM).
+      - "127.0.0.1:${ORACLE_PORT:-1521}:1521"
     volumes:
       # Persistance des fichiers de la base
       - oracle-data:/opt/oracle/oradata
@@ -52,6 +58,10 @@ services:
     build: ./backend
     container_name: 3gb-api
     restart: unless-stopped
+    # Petit processus init (tini) en PID 1 : il relaie SIGTERM a Node lors
+    # d'un « docker compose down » ; l'arret propre (fermeture du pool)
+    # a lieu au lieu d'un SIGKILL apres 10 secondes.
+    init: true
     environment:
       NODE_ENV: development
       PORT: 3010
@@ -61,13 +71,31 @@ services:
       DB_PASSWORD: ${APP_USER_PASSWORD}
     ports:
       # Publie pour que Postman / curl frappent l'API directement
-      - "${API_PORT:-3010}:3010"
+      - "127.0.0.1:${API_PORT:-3010}:3010"
     volumes:
-      # Volume partage backend : l'etudiant edite dans VS Code, le
-      # conteneur voit le changement (node --watch redemarre tout seul).
-      # On ne monte QUE ./backend/src : node_modules reste celui de
-      # l'image, compile pour la bonne architecture (amd64 ou arm64).
-      - ./backend/src:/app/src
+      # Journaux winston (logs/serveur.log) visibles sur le poste :
+      # backend/logs/ s'ouvre dans VS Code, Notepad ou TextEdit.
+      - ./backend/logs:/app/logs
+    # Synchronisation du code : « docker compose up --watch ».
+    # Pas de volume monte sur ./backend/src : sur Windows (WSL 2), une
+    # sauvegarde dans VS Code ne produit aucun evenement de fichier dans
+    # le conteneur et node --watch ne redemarrait jamais. Ici, Compose
+    # surveille le poste et COPIE le fichier dans le conteneur ; la copie
+    # se fait dans Linux, node --watch la voit et redemarre.
+    develop:
+      watch:
+        # Code source : copie fichier par fichier, sans rebuild
+        - action: sync
+          path: ./backend/src
+          target: /app/src
+          # Au lancement, recopie tout src/ : les changements faits
+          # pendant que watch ne tournait pas ne sont pas perdus.
+          initial_sync: true
+        # Nouvelle dependance : l'image est reconstruite (npm ci)
+        - action: rebuild
+          path: ./backend/package.json
+        - action: rebuild
+          path: ./backend/package-lock.json
     depends_on:
       oracle-db:
         # L'API ne demarre pas avant qu'Oracle reponde au healthcheck
@@ -79,11 +107,11 @@ services:
   # 3. Serveur web nginx
   # -------------------------------------------------------------------
   web:
-    image: nginx:1.27-alpine
+    image: nginx:1.30.6-alpine
     container_name: 3gb-web
     restart: unless-stopped
     ports:
-      - "${WEB_PORT:-8080}:8080"
+      - "127.0.0.1:${WEB_PORT:-8080}:8080"
     volumes:
       # Volume partage frontend : HTML / CSS / JS servis tels quels,
       # aucun rebuild, un simple rafraichissement du navigateur suffit.

@@ -8,13 +8,13 @@
     "start": "node --watch src/server.js"
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "oracledb": "^6.9.0",
-    "winston": "^3.17.0"
+    "cors": "2.8.6",
+    "express": "5.3.0",
+    "oracledb": "26.0.0",
+    "winston": "3.19.0"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "license": "MIT"
 }

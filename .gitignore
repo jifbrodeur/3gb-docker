@@ -5,6 +5,10 @@
 node_modules/
 npm-debug.log*
 
+# Journaux de l'API (backend/logs monte dans le conteneur)
+backend/logs/*
+!backend/logs/.gitkeep
+
 # Divers
 .DS_Store
 Thumbs.db

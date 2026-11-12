@@ -47,12 +47,12 @@ exactement ce qu'on veut pour une base de données.
 docker run -d \
   --name 3gb-oracle \
   --network 3gb-net \
-  -p 1521:1521 \
+  -p 127.0.0.1:1521:1521 \
   -e ORACLE_PASSWORD=Oracle3GB_2026 \
   -v oracle-data:/opt/oracle/oradata \
   -v "$(pwd)/oracle/init:/container-entrypoint-initdb.d:ro" \
   -v "$(pwd)/oracle/app:/sql:ro" \
-  gvenzl/oracle-free:23-slim
+  gvenzl/oracle-free:23.26.2-slim
 ```
 
 Décortiquons :
@@ -62,7 +62,7 @@ Décortiquons :
 | `-d` | (implicite) | Détaché : rend la main tout de suite |
 | `--name` | `container_name:` | Nom fixe, sinon Docker en invente un |
 | `--network` | `networks:` | Sans ça, le conteneur est isolé des deux autres |
-| `-p 1521:1521` | `ports:` | `hôte:conteneur` — publie vers votre poste |
+| `-p 127.0.0.1:1521:1521` | `ports:` | `ip:hôte:conteneur` — publie vers votre poste seulement |
 | `-e` | `environment:` | Variable lue par le point d'entrée de l'image |
 | `-v oracle-data:...` | `volumes:` | Volume **nommé** : persistance |
 | `-v "$(pwd)/...:...:ro"` | `volumes:` | **Bind mount** : un dossier de votre poste, en lecture seule |
@@ -87,7 +87,7 @@ docker build -t 3gb-api ./backend
 docker run -d \
   --name 3gb-api \
   --network 3gb-net \
-  -p 3010:3010 \
+  -p 127.0.0.1:3010:3010 \
   -e PORT=3010 \
   -e DB_CONNECT_STRING=oracle-db:1521/FREEPDB1 \
   -e DB_USER=app3gb \
@@ -117,10 +117,10 @@ Deux points à noter :
 docker run -d \
   --name 3gb-web \
   --network 3gb-net \
-  -p 8080:8080 \
+  -p 127.0.0.1:8080:8080 \
   -v "$(pwd)/frontend:/usr/share/nginx/html:ro" \
   -v "$(pwd)/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro" \
-  nginx:1.27-alpine
+  nginx:1.30.6-alpine
 ```
 
 Le second `-v` monte **un seul fichier**, pas un dossier — c'est permis, et c'est le
