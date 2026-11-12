@@ -371,6 +371,100 @@ fait à votre place.
 
 ---
 
+## 11. Mise à jour de novembre 2026 — à faire une seule fois
+
+> Message transmis aux étudiants. À suivre si votre dépôt date d'avant le
+> 12 novembre 2026. Pour une installation neuve, ignorez cette section.
+
+J'ai mis à jour le dépôt `3gb-docker`. Les principaux changements :
+
+- **Sous Windows, le serveur Node redémarre enfin tout seul** quand vous sauvegardez
+  un fichier dans `backend/src`.
+- **Les journaux de l'API sont visibles sur votre poste**, dans
+  `backend/logs/serveur.log`.
+- **Oracle, l'API et nginx ne sont plus accessibles depuis le réseau du collège**,
+  seulement depuis votre propre poste.
+- **Tout le monde a les mêmes versions** de Node, Express, oracledb et nginx.
+
+**Vos données Oracle sont conservées.** N'utilisez surtout pas `docker compose down -v`.
+
+**Étape 1 : noter votre version d'Oracle** (dans le dossier `3gb-docker`, *avant*
+le `git pull`)
+
+```bash
+docker compose exec oracle-db sqlplus -v
+```
+
+Notez la version affichée sur la ligne `Version 23.26.…`.
+
+**Étape 2 : mettre de côté vos modifications**
+
+Si vous avez modifié des fichiers du dépôt (par exemple `server.js` ou
+`coursDB.mjs`), mettez-les de côté pour éviter un conflit :
+
+```bash
+git stash
+```
+
+**Étape 3 : récupérer la mise à jour**
+
+```bash
+git pull
+```
+
+**Étape 4 : adapter `.env` à votre version d'Oracle**
+
+| Version notée à l'étape 1 | Quoi faire |
+|---|---|
+| `23.26.3` | Rien. |
+| `23.26.2` | Ouvrez `.env` et ajoutez, sur une nouvelle ligne : `ORACLE_TAG=23.26.2-slim` |
+| Une autre version | **Arrêtez-vous ici** et écrivez-moi en indiquant la version. |
+
+Pourquoi ? Une base Oracle ne fonctionne qu'avec la version d'image qui l'a créée.
+Avec la mauvaise version, la base démarre, mais tout ce qui touche aux fuseaux
+horaires échoue (`ORA-01804`).
+
+**Étape 5 : reconstruire et démarrer**
+
+```bash
+docker compose up -d --build --watch
+```
+
+Le premier démarrage télécharge de nouvelles images. Comptez quelques minutes.
+
+**Étape 6 : remettre vos modifications** (seulement si vous avez fait `git stash`)
+
+```bash
+git stash pop
+```
+
+En cas de conflit, ne paniquez pas : apportez votre poste au prochain cours.
+
+**Étape 7 : vérifier que tout fonctionne**
+
+Ouvrez <http://localhost:8080/api/sante>. Vous devez voir `"statut":"ok"`.
+
+**⚠️ Ce qui change dans vos habitudes**
+
+À partir de maintenant, démarrez l'environnement **avec `--watch`** :
+
+```bash
+docker compose up -d --watch
+```
+
+Sans `--watch`, vos modifications dans `backend/src` **n'ont aucun effet** : l'API
+continue d'exécuter l'ancien code. Si vous avez l'impression que vos changements sont
+ignorés, c'est presque toujours la raison. Relancez la commande ci-dessus.
+
+Les autres outils ne changent pas : le navigateur sur `localhost:8080`, Postman sur
+`localhost:3010` et SQL Developer sur `localhost:1521` fonctionnent comme avant.
+
+**`ORA-01804` après la mise à jour ?** Vous avez sauté l'étape 4. Ajoutez la ligne
+`ORACLE_TAG=…` qui correspond à votre version dans `.env`, puis relancez
+`docker compose up -d --watch`.
+
+---
+
 ## Références
 
 - Image Oracle : [gvenzl/oci-oracle-free](https://github.com/gvenzl/oci-oracle-free)

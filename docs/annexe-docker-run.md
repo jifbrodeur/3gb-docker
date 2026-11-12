@@ -52,7 +52,7 @@ docker run -d \
   -v oracle-data:/opt/oracle/oradata \
   -v "$(pwd)/oracle/init:/container-entrypoint-initdb.d:ro" \
   -v "$(pwd)/oracle/app:/sql:ro" \
-  gvenzl/oracle-free:23.26.2-slim
+  gvenzl/oracle-free:23.26.3-slim
 ```
 
 Décortiquons :

@@ -19,10 +19,12 @@ services:
   # 1. Base de donnees Oracle
   # -------------------------------------------------------------------
   oracle-db:
-    # Version epinglee : tous les etudiants ont la meme base. Ne pas changer
-    # en cours de session : un volume cree par une version n'est pas
-    # garanti lisible par une autre (docker compose down -v pour repartir).
-    image: gvenzl/oracle-free:23.26.2-slim
+    # Version epinglee. Une base ne fonctionne qu'avec la version d'image
+    # qui l'a creee : chaque image ne contient qu'UN fichier de fuseaux
+    # horaires (23.26.2 -> v45, 23.26.3-slim -> v43). Ouvrir une base avec
+    # une autre version donne ORA-01804. Les bases creees en 23.26.2
+    # mettent donc ORACLE_TAG=23.26.2-slim dans leur .env.
+    image: gvenzl/oracle-free:${ORACLE_TAG:-23.26.3-slim}
     container_name: 3gb-oracle
     restart: unless-stopped
     environment:
