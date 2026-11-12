@@ -13,3 +13,7 @@ backend/logs/*
 .DS_Store
 Thumbs.db
 .vscode/
+
+# Installateurs et images Docker hors ligne (1,7 Go) : jamais versionnes,
+# les etudiants tirent les images de Docker Hub a l'installation.
+images/
