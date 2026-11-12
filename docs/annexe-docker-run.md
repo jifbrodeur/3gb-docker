@@ -55,6 +55,9 @@ docker run -d \
   gvenzl/oracle-free:23.26.3-slim
 ```
 
+> Compose lit cette version dans la variable `ORACLE_TAG` du `.env` (par défaut
+> `23.26.3-slim`) : une base ne fonctionne qu'avec la version d'image qui l'a créée.
+
 Décortiquons :
 
 | Option | Équivalent Compose | Rôle |
@@ -92,11 +95,21 @@ docker run -d \
   -e DB_CONNECT_STRING=oracle-db:1521/FREEPDB1 \
   -e DB_USER=app3gb \
   -e DB_PASSWORD=App3GB_2026 \
+  --init \
+  --network-alias api \
+  -v "$(pwd)/backend/logs:/app/logs" \
   -v "$(pwd)/backend/src:/app/src" \
   3gb-api
 ```
 
-Deux points à noter :
+| Option | Équivalent Compose | Rôle |
+|---|---|---|
+| `--init` | `init: true` | Petit processus init en PID 1 : relaie SIGTERM à Node pour un arrêt propre |
+| `--network-alias api` | nom du service `api` | nginx relaie vers `http://api:3010` |
+| `-v .../backend/logs:...` | `volumes:` | `serveur.log` visible sur votre poste |
+| `-v .../backend/src:...` | `develop.watch` | Voir le point 3 ci-dessous |
+
+Trois points à noter :
 
 1. **`DB_CONNECT_STRING=oracle-db:1521/...`** — mais le conteneur Oracle s'appelle
    `3gb-oracle` ! Avec `docker run`, le DNS interne résout le **nom du conteneur**.
@@ -108,6 +121,13 @@ Deux points à noter :
 2. **Il n'y a pas de `depends_on`.** Si vous lancez l'API avant qu'Oracle soit prêt,
    elle échoue — d'où les tentatives répétées dans `db.js`. Compose, lui, sait
    attendre le `healthcheck`.
+
+3. **Le code est monté, pas synchronisé.** `docker run` ne sait que monter
+   `backend/src` (*bind mount*). Sur Mac, `node --watch-path` voit les sauvegardes ;
+   sur Windows (WSL 2), il ne les voit pas. C'est pourquoi le `docker-compose.yml`
+   ne monte **pas** `backend/src` : il le **copie** dans le conteneur à chaque
+   sauvegarde, grâce à `develop.watch` et à la commande `docker compose watch`,
+   qui n'a pas d'équivalent `docker run`.
 
 ---
 
@@ -124,7 +144,9 @@ docker run -d \
 ```
 
 Le second `-v` monte **un seul fichier**, pas un dossier — c'est permis, et c'est le
-moyen habituel d'injecter une configuration dans une image officielle.
+moyen habituel d'injecter une configuration dans une image officielle. Revers : un
+éditeur qui *remplace* le fichier en sauvegardant laisse le conteneur sur l'ancienne
+version ; il faut alors recréer le conteneur.
 
 ---
 
@@ -149,6 +171,7 @@ avec `docker compose down -v`.
 | Résolution par nom | nom du conteneur / `--network-alias` | nom du **service** |
 | Ordre de démarrage | à votre charge | `depends_on` + `healthcheck` |
 | Reconstruction | `docker build` puis `docker run` | `up -d --build` |
+| Code synchronisé | *bind mount* seulement | `develop.watch` + `docker compose watch` |
 | Reproductibilité | un fichier texte à part, ou votre mémoire | le `docker-compose.yml`, versionné |
 
 La dernière ligne est la vraie raison d'être de Compose : l'environnement devient un

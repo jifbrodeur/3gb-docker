@@ -19,7 +19,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
-# Copie de reference. En developpement, « docker compose up --watch »
+# Copie de reference. En developpement, « docker compose watch »
 # synchronise ensuite ./backend/src dans ce dossier (voir develop.watch
 # dans docker-compose.yml).
 COPY src ./src

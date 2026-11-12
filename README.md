@@ -23,7 +23,7 @@ Guide d'installation pour les postes Windows (x86) et Mac (Apple Silicon).
 
   Volumes partagés :  ./frontend     →  nginx  (HTML / CSS / JS)
                       ./backend/logs ←  api    (journaux winston)
-  Synchronisé :       ./backend/src  →  api    (docker compose up --watch)
+  Synchronisé :       ./backend/src  →  api    (docker compose watch)
   Ports publiés sur 127.0.0.1 seulement : invisibles depuis le réseau du collège.
 ```
 
@@ -44,7 +44,7 @@ Dans un conteneur, `localhost` désigne **le conteneur lui-même**. C'est pour �
 
 | | Minimum |
 |---|---|
-| Docker Desktop | version récente, **démarré** |
+| Docker Desktop | version récente (pour `docker compose watch`), **démarré** |
 | Mémoire allouée à Docker | **4 Go** (Settings → Resources → Memory) |
 | Espace disque | ~4 Go |
 | Éditeur | VS Code (ou autre) |
@@ -97,16 +97,29 @@ cd 3gb-docker
 # 2. Créer le fichier de configuration
 cp .env.example .env        # Windows : copy .env.example .env
 
-# 3. Démarrer les trois conteneurs ET la synchronisation du code Node
-docker compose up -d --watch
+# 3. Télécharger les images, construire l'API et démarrer les trois conteneurs
+docker compose up -d --build
 ```
 
-> **Pourquoi `--watch` ?** Le dossier `backend/src` n'est **pas** monté dans le
-> conteneur : sur Windows, une sauvegarde dans VS Code ne serait jamais vue par
-> Node. Avec `--watch`, Docker Compose surveille votre poste et **copie** chaque
-> fichier modifié dans le conteneur, où `node --watch-path=src` redémarre le
-> serveur. Sans `--watch`, l'API tourne avec le code de la dernière construction
-> de l'image : vos modifications n'ont aucun effet.
+Les images (Oracle, Node, nginx) sont téléchargées de Docker Hub à ce moment-là :
+environ 2 Go la première fois.
+
+Pour travailler, lancez ensuite la synchronisation du code Node dans un terminal
+(celui de VS Code, par exemple) **que vous laissez ouvert** :
+
+```bash
+docker compose watch
+```
+
+> **Pourquoi `docker compose watch` ?** Le dossier `backend/src` n'est **pas**
+> monté dans le conteneur : sur Windows, une sauvegarde dans VS Code ne serait
+> jamais vue par Node. `docker compose watch` surveille votre poste et **copie**
+> chaque fichier modifié dans le conteneur, où `node --watch-path=src` redémarre
+> le serveur. Sans lui, l'API tourne avec le code de la dernière construction de
+> l'image : vos modifications n'ont aucun effet.
+>
+> Ctrl-C arrête la synchronisation, **pas** les conteneurs. N'ajoutez pas `-d` :
+> `docker compose up -d --watch` est refusé par Docker Compose.
 
 Au **premier** démarrage, Oracle crée la base : comptez **2 à 4 minutes**. Suivez
 la progression :
@@ -154,6 +167,9 @@ désormais :
 ```bash
 docker compose restart api
 ```
+
+Les scripts suivants de `oracle/app/` (logger, `cours`, `cours_tapi`, tests utPLSQL,
+`etudiant_api`…) se jouent de la même façon, au fil des leçons.
 
 ---
 
@@ -215,18 +231,28 @@ Ouvrez <http://localhost:8080> et cliquez sur les trois boutons de la page.
 
 ## 6. Travailler au quotidien
 
+Au début de chaque séance, Docker Desktop démarré :
+
+```bash
+docker compose watch
+```
+
+Cette commande démarre les trois conteneurs s'ils sont arrêtés, puis synchronise
+`backend/src`. Laissez son terminal ouvert pendant que vous travaillez.
+
 | Ce que vous modifiez | Ce qu'il faut faire |
 |---|---|
 | `frontend/*.html`, `*.js`, `*.css` | Rien — rafraîchir le navigateur |
-| `backend/src/*.js` | Rien, **si** `docker compose up -d --watch` tourne — le fichier est copié et le serveur redémarre |
-| `backend/package.json` (nouvelle dépendance) | Rien sous `--watch` (l'image est reconstruite) ; sinon `docker compose up -d --build api` |
+| `backend/src/*.js`, `*.mjs` | Rien, **si** `docker compose watch` tourne — le fichier est copié et le serveur redémarre |
+| `backend/package.json` (nouvelle dépendance) | Rien si `docker compose watch` tourne (l'image est reconstruite) ; sinon `docker compose up -d --build api` |
 | `nginx/default.conf` | `docker compose restart web` |
+| `oracle/app/*.sql` | Rejouer le script avec `docker compose exec` |
+| `.env` | `docker compose up -d` (recrée les conteneurs) |
+| Après un `git pull` | `docker compose up -d --build`, puis `docker compose watch` |
 
 Les journaux de l'API s'écrivent dans **`backend/logs/serveur.log`**, sur votre
 poste : ouvrez-le dans VS Code, Notepad ou TextEdit. `docker compose logs -f api`
 affiche les mêmes lignes, en couleurs.
-| `oracle/app/*.sql` | Rejouer le script avec `docker compose exec` |
-| `.env` | `docker compose up -d` (recrée les conteneurs) |
 
 **Attention à `node_modules`.** Les dépendances sont installées **dans l'image**, pas
 sur votre poste, et `./backend/node_modules` n'est jamais monté. C'est ce qui permet
@@ -234,9 +260,16 @@ au même dépôt de fonctionner sur un Mac ARM et un PC x86 : un `node_modules` 
 sur l'un ne fonctionnerait pas sur l'autre. Si vous faites un `npm install` local pour
 l'autocomplétion de VS Code, tant mieux, mais le conteneur l'ignore.
 
+**Ajouter une dépendance.** Modifiez `backend/package.json` *et*
+`backend/package-lock.json` : le plus simple est `npm install <paquet>` dans le
+dossier `backend` sur votre poste (Node requis), puis `docker compose up -d --build api`.
+L'image installe exactement les versions du `package-lock.json` (`npm ci`) : tous
+les postes obtiennent les mêmes.
+
 Commandes utiles :
 
 ```bash
+docker compose watch                # démarrer + synchroniser backend/src
 docker compose logs -f api          # journal de l'API en direct
 docker compose logs -f web          # journal nginx (accès + erreurs)
 docker compose exec api sh          # shell dans le conteneur Node
@@ -251,7 +284,7 @@ docker compose down -v              # arrêter ET tout effacer
 
 ```bash
 docker compose down -v
-docker compose up -d
+docker compose up -d --build
 ```
 
 `-v` détruit le volume `oracle-data`. La base est recréée de zéro, et
@@ -266,7 +299,7 @@ conteneur : tout ce qui compte est dans un fichier `.sql` versionné.
 ## 8. Dépannage
 
 **`port is already allocated` / `bind: address already in use`**
-Un autre programme occupe 1521, 3010 ou 8080. Changez la valeur dans `.env`
+Un autre programme occupe 1521, 3010 ou 8080 sur votre poste. Changez la valeur dans `.env`
 (`WEB_PORT=8081`, par exemple) puis `docker compose up -d`. Pour trouver le coupable :
 `lsof -i :8080` (Mac) ou `netstat -ano | findstr :8080` (Windows).
 
@@ -312,9 +345,26 @@ Le `Cache-Control: no-store` de `nginx/default.conf` devrait l'empêcher. Sinon,
 rechargement forcé : Ctrl-Maj-R (Windows) ou Cmd-Maj-R (Mac).
 
 **Mes modifications dans `backend/src` n'ont aucun effet**
-La synchronisation ne tourne pas : relancez `docker compose up -d --watch` (au
-démarrage, tout `src/` est recopié, rien n'est perdu). Vérifiez aussi que vous
-éditez bien `backend/src/` et non `backend/`.
+La synchronisation ne tourne pas : relancez `docker compose watch` et laissez son
+terminal ouvert (au démarrage, tout `src/` est recopié, rien n'est perdu). Vérifiez
+aussi que vous éditez bien `backend/src/` et non `backend/`.
+
+**`--detach cannot be combined with ... --watch`**
+`docker compose up -d --watch` n'existe pas. Utilisez `docker compose watch`.
+
+**Je ne peux pas me connecter depuis un autre ordinateur**
+C'est voulu : les ports sont publiés sur `127.0.0.1`, donc accessibles depuis votre
+poste seulement (votre base n'est pas exposée sur le réseau du collège).
+
+**`ORA-01804: failure to initialize timezone information`**
+L'image Oracle n'est pas celle qui a créé votre base. Une base ne fonctionne
+qu'avec sa version d'image : voir l'étape 4 de la section 11 (variable `ORACLE_TAG`
+dans `.env`).
+
+**Je modifie `nginx/default.conf` mais nginx ne voit rien, même après un `restart`**
+Ce fichier est monté seul (pas son dossier). Certains éditeurs remplacent le fichier
+en sauvegardant, et le conteneur garde l'ancien. Recréez le conteneur :
+`docker compose up -d --force-recreate web`.
 
 **`cannot attach stdin to a TTY-enabled container because stdin is not a terminal`**
 Vous avez redirigé l'entrée standard (`<<<`, `<`, ou un tube) vers un
@@ -342,20 +392,35 @@ premier cours, pas pendant.
 ├── oracle/
 │   ├── init/
 │   │   └── 001_schema_base.sql   AUTO, une seule fois : tablespace, rôle, profil
-│   └── app/
-│       ├── 10_utilisateur.sql    MANUEL : compte applicatif
-│       ├── 20_schema_applicatif.sql  MANUEL : tables + données de test
-│       └── 99_verification.sql   MANUEL : test 1 de validation
+│   └── app/                      MANUEL, dans l'ordre des numéros :
+│       ├── 10_utilisateur.sql    compte applicatif
+│       ├── 15_privileges_logger.sql  privilèges requis par logger
+│       ├── 20_schema_applicatif.sql  tables + données de test
+│       ├── 25_logger_install.sql journalisation PL/SQL (logger)
+│       ├── 30_cours.sql          table cours
+│       ├── 31_cours_tapi.spc/.bdy  paquetage cours_tapi (JSON:API)
+│       ├── 40_… à 45_…           tests utPLSQL de cours_tapi (45 : désinstaller utPLSQL)
+│       ├── 99_verification.sql   test 1 de validation
+│       └── 110_etudiant.spc/.bdy paquetage etudiant_api
 ├── backend/
-│   ├── Dockerfile
-│   ├── package.json
-│   └── src/
+│   ├── Dockerfile              node:24 + npm ci + node --watch-path
+│   ├── package.json            Dépendances, versions exactes
+│   ├── package-lock.json       Versions verrouillées (npm ci)
+│   ├── logs/                   serveur.log, visible sur le poste (non versionné)
+│   └── src/                    Synchronisé par « docker compose watch »
+│       ├── server.js           Express : middlewares, routes, erreurs
 │       ├── db.js               Pool node-oracledb (mode Thin)
-│       └── server.js           Routes REST
+│       ├── logger.mjs          Journalisation winston
+│       ├── coursDB.mjs         Appels à cours_tapi
+│       ├── routes/cours.mjs    Verbe + URL → contrôleur
+│       └── controllers/cours.mjs  Requête → code HTTP + JSON
 ├── frontend/
 │   ├── index.html              Page de validation
 │   ├── app.js                  Appels fetch vers /api
-│   └── style.css
+│   ├── cours.html, cours.js…   Interface de gestion des cours
+│   └── style.css, cours.css
+├── tests/
+│   └── cours.json              Exemple de corps JSON pour POST/PUT /api/cours
 └── docs/
     └── annexe-docker-run.md    Les mêmes conteneurs, sans Compose
 ```
@@ -427,7 +492,7 @@ horaires échoue (`ORA-01804`).
 **Étape 5 : reconstruire et démarrer**
 
 ```bash
-docker compose up -d --build --watch
+docker compose up -d --build
 ```
 
 Le premier démarrage télécharge de nouvelles images. Comptez quelques minutes.
@@ -446,22 +511,24 @@ Ouvrez <http://localhost:8080/api/sante>. Vous devez voir `"statut":"ok"`.
 
 **⚠️ Ce qui change dans vos habitudes**
 
-À partir de maintenant, démarrez l'environnement **avec `--watch`** :
+À partir de maintenant, travaillez avec **`docker compose watch`** ouvert dans un
+terminal (celui de VS Code, par exemple) :
 
 ```bash
-docker compose up -d --watch
+docker compose watch
 ```
 
-Sans `--watch`, vos modifications dans `backend/src` **n'ont aucun effet** : l'API
-continue d'exécuter l'ancien code. Si vous avez l'impression que vos changements sont
-ignorés, c'est presque toujours la raison. Relancez la commande ci-dessus.
+Sans lui, vos modifications dans `backend/src` **n'ont aucun effet** : l'API continue
+d'exécuter l'ancien code. Si vous avez l'impression que vos changements sont ignorés,
+c'est presque toujours la raison. Relancez la commande ci-dessus. Ctrl-C l'arrête sans
+arrêter les conteneurs.
 
 Les autres outils ne changent pas : le navigateur sur `localhost:8080`, Postman sur
 `localhost:3010` et SQL Developer sur `localhost:1521` fonctionnent comme avant.
 
 **`ORA-01804` après la mise à jour ?** Vous avez sauté l'étape 4. Ajoutez la ligne
 `ORACLE_TAG=…` qui correspond à votre version dans `.env`, puis relancez
-`docker compose up -d --watch`.
+`docker compose up -d`.
 
 ---
 

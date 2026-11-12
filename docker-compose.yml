@@ -5,8 +5,10 @@
 #   api        Node.js + node-oracledb     -> port hote 3010
 #   web        nginx (statique + proxy)    -> port hote 8080
 #
-# Demarrage : docker compose up -d --watch   (ou --watch sans -d pour
-#             voir les logs ; Ctrl-C arrete la synchro, pas la base)
+# Demarrage : docker compose watch    (demarre tout ET synchronise
+#             backend/src ; terminal a laisser ouvert ; Ctrl-C arrete
+#             la synchro, pas les conteneurs)
+# Apres un git pull : docker compose up -d --build, puis docker compose watch
 # Arret     : docker compose down          (les donnees Oracle survivent)
 # Remise a zero complete : docker compose down -v
 # =====================================================================
@@ -78,7 +80,7 @@ services:
       # Journaux winston (logs/serveur.log) visibles sur le poste :
       # backend/logs/ s'ouvre dans VS Code, Notepad ou TextEdit.
       - ./backend/logs:/app/logs
-    # Synchronisation du code : « docker compose up --watch ».
+    # Synchronisation du code : « docker compose watch ».
     # Pas de volume monte sur ./backend/src : sur Windows (WSL 2), une
     # sauvegarde dans VS Code ne produit aucun evenement de fichier dans
     # le conteneur et node --watch ne redemarrait jamais. Ici, Compose
