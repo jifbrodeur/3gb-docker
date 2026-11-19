@@ -18,6 +18,7 @@ import cors from "cors";
 import logger from "./logger.mjs"; // copie de serveur-APIv4
 import { initPool, query, closePool, oracledb } from "./db.js";
 import coursRouter from "./routes/cours.mjs";
+import { ErreurApi, documentErreur } from "./erreurs.mjs";
 
 const app = express();
 const port = Number(process.env.PORT) || 3010;
@@ -125,6 +126,11 @@ app.use((req, res) => {
 // Erreurs : Express reconnait ce middleware a ses 4 parametres
 // ---------------------------------------------------------------------
 app.use((err, req, res, next) => {
+  // ErreurApi (cours) : document JSON:API { errors: [...] }
+  if (err instanceof ErreurApi) {
+    logger.log("error", `${err.status} ${err.title} : ${err.message}`);
+    return res.status(err.status).json(documentErreur(err));
+  }
   logger.log("error", err.stack ?? err);
   const code = err.status ?? 500; // 400 : JSON invalide (express.json)
   res.status(code).json({ status: "error",

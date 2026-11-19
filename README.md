@@ -411,9 +411,11 @@ premier cours, pas pendant.
 │       ├── server.js           Express : middlewares, routes, erreurs
 │       ├── db.js               Pool node-oracledb (mode Thin)
 │       ├── logger.mjs          Journalisation winston
-│       ├── coursDB.mjs         Appels à cours_tapi
+│       ├── erreurs.mjs         ErreurApi → document JSON:API { errors }
+│       ├── tapi.mjs            Appel générique d'une TAPI (:reto JSON)
+│       ├── coursDB.mjs         Appels à cours_tapi (aucun HTTP)
 │       ├── routes/cours.mjs    Verbe + URL → contrôleur
-│       └── controllers/cours.mjs  Requête → code HTTP + JSON
+│       └── controllers/cours.mjs  Validation, code HTTP + JSON
 ├── frontend/
 │   ├── index.html              Page de validation
 │   ├── app.js                  Appels fetch vers /api
