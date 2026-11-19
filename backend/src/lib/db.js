@@ -1,5 +1,5 @@
 // =====================================================================
-// db.js - pool de connexions Oracle (node-oracledb, mode Thin)
+// lib/db.js - pool de connexions Oracle (node-oracledb, mode Thin)
 //
 // Mode Thin : depuis la version 6, node-oracledb parle directement le
 // protocole Oracle Net en JavaScript. Aucun Instant Client, aucune

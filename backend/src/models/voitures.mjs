@@ -1,15 +1,15 @@
 // =====================================================================
-// voituresDB.mjs - GABARIT : acces aux donnees des voitures
+// models/voitures.mjs - GABARIT : acces aux donnees des voitures
 //
 // A COMPLETER : ce fichier suppose une table VOITURE et un paquetage
 // voitures_tapi qui suivent le meme contrat que cours_tapi (chaque
 // fonction retourne un VARCHAR2 au format JSON:API). Ni l'une ni
 // l'autre n'existent encore dans la base.
 //
-// Comme coursDB.mjs, ce fichier ne connait PAS HTTP.
+// Comme models/cours.mjs, ce fichier ne connait PAS HTTP.
 // =====================================================================
 
-import { appelerTapi } from "./tapi.mjs";
+import { appelerTapi } from "../lib/tapi.mjs";
 
 /**
  * Recupere une voiture par son ID, ou toutes les voitures si l'ID est absent.

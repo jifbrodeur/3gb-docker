@@ -1,12 +1,12 @@
 // =====================================================================
-// coursDB.mjs - acces aux donnees des cours (couche « modele »)
+// models/cours.mjs - acces aux donnees des cours (couche « modele »)
 //
 // Ne connait PAS HTTP : ni req, ni res, ni code de statut. Chaque
 // fonction appelle cours_tapi et retourne le document JSON:API qu'elle
 // produit. Les cas d'erreur sont lances (throw) par appelerTapi().
 // =====================================================================
 
-import { appelerTapi } from "./tapi.mjs";
+import { appelerTapi } from "../lib/tapi.mjs";
 
 /**
  * Recupere un cours par son ID, ou tous les cours si l'ID est absent.

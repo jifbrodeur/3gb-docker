@@ -1,19 +1,19 @@
 // =====================================================================
 // controllers/cours.mjs - lit req, valide, choisit le code HTTP
 //
-// Aucun SQL ici : il reste dans coursDB.mjs.
+// Aucun SQL ici : il reste dans models/cours.mjs.
 // Pas de try/catch : Express 5 envoie une promesse rejetee (ou une
 // ErreurApi lancee) au middleware d'erreur de server.js.
 // =====================================================================
 
-import logger from "../logger.mjs";
-import { ErreurApi } from "../erreurs.mjs";
+import logger from "../lib/logger.mjs";
+import { ErreurApi } from "../lib/erreurs.mjs";
 import {
   getCours,
   insertCours,
   updateCours,
   deleteCours,
-} from "../coursDB.mjs";
+} from "../models/cours.mjs";
 
 // Le code HTTP vient du document JSON:API retourne par cours_tapi :
 // meta.statusCode en cas de succes, errors[0].status sinon.

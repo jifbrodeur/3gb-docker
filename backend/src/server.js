@@ -15,10 +15,10 @@
 
 import express from "express";
 import cors from "cors";
-import logger from "./logger.mjs"; // copie de serveur-APIv4
-import { initPool, query, closePool, oracledb } from "./db.js";
+import logger from "./lib/logger.mjs"; // copie de serveur-APIv4
+import { initPool, query, closePool, oracledb } from "./lib/db.js";
 import coursRouter from "./routes/cours.mjs";
-import { ErreurApi, documentErreur } from "./erreurs.mjs";
+import { ErreurApi, documentErreur } from "./lib/erreurs.mjs";
 
 const app = express();
 const port = Number(process.env.PORT) || 3010;

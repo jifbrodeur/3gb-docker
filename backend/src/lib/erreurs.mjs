@@ -1,5 +1,5 @@
 // =====================================================================
-// erreurs.mjs - erreur applicative au format JSON:API
+// lib/erreurs.mjs - erreur applicative au format JSON:API
 //
 // Les couches DB et controleur LANCENT une ErreurApi (throw) au lieu
 // de construire elles-memes la reponse. Express 5 transmet l'erreur au

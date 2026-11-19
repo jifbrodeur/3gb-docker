@@ -1,19 +1,19 @@
 // =====================================================================
 // controllers/voitures.mjs - GABARIT : lit req, valide, choisit le code HTTP
 //
-// Aucun SQL ici : il reste dans voituresDB.mjs.
+// Aucun SQL ici : il reste dans models/voitures.mjs.
 // Pas de try/catch : Express 5 envoie une promesse rejetee (ou une
 // ErreurApi lancee) au middleware d'erreur de server.js.
 // =====================================================================
 
-import logger from "../logger.mjs";
-import { ErreurApi } from "../erreurs.mjs";
+import logger from "../lib/logger.mjs";
+import { ErreurApi } from "../lib/erreurs.mjs";
 import {
   getVoitures,
   insertVoiture,
   updateVoiture,
   deleteVoiture,
-} from "../voituresDB.mjs";
+} from "../models/voitures.mjs";
 
 // Le code HTTP vient du document JSON:API retourne par voitures_tapi :
 // meta.statusCode en cas de succes, errors[0].status sinon.

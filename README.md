@@ -409,13 +409,14 @@ premier cours, pas pendant.
 │   ├── logs/                   serveur.log, visible sur le poste (non versionné)
 │   └── src/                    Synchronisé par « docker compose watch »
 │       ├── server.js           Express : middlewares, routes, erreurs
-│       ├── db.js               Pool node-oracledb (mode Thin)
-│       ├── logger.mjs          Journalisation winston
-│       ├── erreurs.mjs         ErreurApi → document JSON:API { errors }
-│       ├── tapi.mjs            Appel générique d'une TAPI (:reto JSON)
-│       ├── coursDB.mjs         Appels à cours_tapi (aucun HTTP)
-│       ├── routes/cours.mjs    Verbe + URL → contrôleur
-│       └── controllers/cours.mjs  Validation, code HTTP + JSON
+│       ├── routes/             Verbe + URL → contrôleur
+│       ├── controllers/        Validation, code HTTP + JSON
+│       ├── models/             Appels aux TAPI (aucun HTTP)
+│       └── lib/                Outils partagés
+│           ├── db.js           Pool node-oracledb (mode Thin)
+│           ├── tapi.mjs        Appel générique d'une TAPI (:reto JSON)
+│           ├── erreurs.mjs     ErreurApi → document JSON:API { errors }
+│           └── logger.mjs      Journalisation winston
 ├── frontend/
 │   ├── index.html              Page de validation
 │   ├── app.js                  Appels fetch vers /api
@@ -467,7 +468,7 @@ Notez la version affichée sur la ligne `Version 23.26.…`.
 **Étape 2 : mettre de côté vos modifications**
 
 Si vous avez modifié des fichiers du dépôt (par exemple `server.js` ou
-`coursDB.mjs`), mettez-les de côté pour éviter un conflit :
+`models/cours.mjs`), mettez-les de côté pour éviter un conflit :
 
 ```bash
 git stash

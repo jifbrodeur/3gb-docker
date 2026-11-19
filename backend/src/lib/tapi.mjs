@@ -1,10 +1,10 @@
 // =====================================================================
-// tapi.mjs - appel generique d'une fonction TAPI qui retourne du JSON
+// lib/tapi.mjs - appel generique d'une fonction TAPI qui retourne du JSON
 //
 // Toutes les fonctions de cours_tapi suivent le meme contrat :
 //   :reto := paquetage.fonction(...)  -> VARCHAR2 au format JSON:API
 // Ce helper regroupe ce qui etait repete dans chaque fonction de
-// coursDB.mjs : connexion, execute, commit, JSON.parse, verification
+// models/cours.mjs : connexion, execute, commit, JSON.parse, verification
 // du format et fermeture de la connexion.
 // =====================================================================
 
