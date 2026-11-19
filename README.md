@@ -355,7 +355,7 @@ fichier atterrit au mauvais endroit.
 > **Règle à retenir :** après chaque `git pull`, faites `docker compose up -d --build`,
 > **puis** `docker compose watch`.
 
-**`502 Bad Gateway` sur `http://localhost:8080/api/...`**
+**`502 Bad Gateway` (ou JSON `"title":"API injoignable"`) sur `http://localhost:8080/api/...`**
 nginx est debout, l'API ne l'est pas. `docker compose logs --tail 40 api` donne la
 cause : une erreur dans le code au démarrage (`SyntaxError`, `Cannot find module`,
 suivi de `Waiting for file changes...` : corrigez et sauvegardez), un module manquant
