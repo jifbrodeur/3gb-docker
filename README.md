@@ -336,9 +336,31 @@ refaire l'étape 4. Depuis la correction du 26 août 2026, `001_schema_base.sql`
 le bon répertoire automatiquement et affiche un avertissement dans les journaux si le
 fichier atterrit au mauvais endroit.
 
+> **`Cannot find package 'cors'` (ou `'winston'`, `'express'`) et `502 Bad Gateway`**
+>
+> Votre image Docker date d'avant la mise à jour : `git pull` a apporté le nouveau
+> code, mais pas ses nouvelles dépendances. `docker compose watch` recopie `src/`,
+> pas `node_modules`. Node s'arrête au premier `import` manquant, puis attend
+> (`Waiting for file changes before restarting...`) sans écouter le port 3010,
+> d'où le 502 de nginx.
+>
+> Reconstruisez l'image une fois, puis relancez watch :
+>
+> ```bash
+> docker compose up -d --build api
+> ```
+>
+> `docker compose logs --tail 5 api` doit afficher `API sur le port 3010`.
+>
+> **Règle à retenir :** après chaque `git pull`, faites `docker compose up -d --build`,
+> **puis** `docker compose watch`.
+
 **`502 Bad Gateway` sur `http://localhost:8080/api/...`**
-nginx est debout, l'API ne l'est pas. `docker compose logs api` — c'est en général le
-pool Oracle qui n'a pas pu s'ouvrir.
+nginx est debout, l'API ne l'est pas. `docker compose logs --tail 40 api` donne la
+cause : une erreur dans le code au démarrage (`SyntaxError`, `Cannot find module`,
+suivi de `Waiting for file changes...` : corrigez et sauvegardez), un module manquant
+(voir l'encadré ci-dessus), ou le pool Oracle qui n'a pas pu s'ouvrir
+(`[db] Tentative 10/10 echouee` : vérifiez `.env` et `docker compose ps`).
 
 **Le navigateur sert une vieille version de mon JS**
 Le `Cache-Control: no-store` de `nginx/default.conf` devrait l'empêcher. Sinon,
