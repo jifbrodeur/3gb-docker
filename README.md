@@ -559,6 +559,81 @@ premier cours, pas pendant.
     └── annexe-docker-run.md    Les mêmes conteneurs, sans Compose
 ```
 
+### Le code de l'API : routes, contrôleurs, modèles
+
+Chaque requête traverse les mêmes couches, toujours dans le même ordre. Chaque
+couche a **un seul travail**. Exemple avec `PUT /api/cours/5` :
+
+```
+ requête HTTP
+     │
+     ▼
+ server.js               app.use("/api/cours", coursRouter)
+     │                   cors(), express.json() → req.body, trace dans le journal
+     ▼
+ routes/cours.mjs        router.put("/:id", ctrl.modifierCours)   → req.params.id = "5"
+     │
+     ▼
+ controllers/cours.mjs   idValide("5"), corpsValide(req.body)
+     │                   appelle le modèle, puis choisit le code HTTP
+     ▼
+ models/cours.mjs        updateCours(5, cours) : prépare le bloc PL/SQL et les liaisons
+     │
+     ▼
+ lib/tapi.mjs            appelerTapi() : connexion, execute, commit, JSON.parse
+     │
+     ▼
+ Oracle                  :reto := cours_tapi.upd_cours(...)   → JSON:API
+```
+
+La réponse remonte par le même chemin. La TAPI produit le document JSON, le modèle
+le retourne tel quel, puis le contrôleur l'envoie avec `res.status(code).json(doc)`.
+
+| Couche | Son travail | Ce qu'elle ne fait **jamais** |
+|---|---|---|
+| `server.js` | Monte les middlewares, branche chaque routeur sous son préfixe `/api/...`, répond 404 aux routes inconnues et traite toutes les erreurs dans un middleware unique | Contenir la logique d'une entité |
+| `routes/` | Associe un verbe HTTP et une URL à une fonction du contrôleur | Lire le corps, valider, appeler Oracle |
+| `controllers/` | Lit `req.params` et `req.body`, valide (id entier, corps objet JSON), appelle le modèle, choisit le code HTTP | Écrire du SQL ou du PL/SQL |
+| `models/` | Appelle la TAPI avec les bonnes liaisons (`:id_cours`, `:test`…) et retourne le document JSON:API | Connaître HTTP : ni `req`, ni `res`, ni code de statut |
+| `lib/tapi.mjs` | Code commun à tous les modèles : connexion, `execute`, `commit`, fermeture, `JSON.parse`, vérification du format | Connaître une entité précise |
+
+**Le code HTTP vient de la TAPI.** Le contrôleur lit `meta.statusCode` en cas de
+succès, ou `errors[0].status` en cas d'erreur. `POST` force `201`. C'est donc dans le
+PL/SQL qu'on décide si un cas est un `400`, un `404` ou un `409`.
+
+**Pas de `try/catch` dans les contrôleurs.** Avec Express 5, une erreur lancée
+(`throw new ErreurApi(...)`) ou une promesse rejetée va directement au middleware
+d'erreur de `server.js`. Ce middleware la transforme en document `{ errors: [...] }`.
+Les erreurs Oracle que la TAPI n'a pas traitées deviennent un `404` (ORA-20001,
+ORA-01403) ou un `500`.
+
+### Ajouter une entité à partir du gabarit `voitures`
+
+Les fichiers `voitures.mjs` de `routes/`, `controllers/` et `models/` sont un
+**gabarit** complet. Ils ne sont **pas** branchés dans `server.js` : `/api/voitures`
+répond donc 404 tant que vous ne l'avez pas activé.
+
+1. Créez d'abord la table et la TAPI de l'entité dans la base, puis vérifiez-les avec
+   SQL Developer ou utPLSQL.
+2. Copiez les trois fichiers `voitures.mjs` sous le nom de votre entité, par exemple
+   `livres.mjs`, dans `routes/`, `controllers/` et `models/`.
+3. Dans chaque copie, renommez les fonctions et les messages. Dans le modèle, ajustez
+   le bloc PL/SQL (`livre_tapi.ins_livre(...)`) et les liaisons aux paramètres réels
+   de votre TAPI.
+4. Branchez le routeur dans `server.js`, **avant** le middleware 404. Sinon, le 404
+   répond en premier :
+
+   ```js
+   import livresRouter from "./routes/livres.mjs";
+   app.use("/api/livres", livresRouter);
+   ```
+
+5. Testez. `docker compose watch` synchronise les fichiers et l'API redémarre seule.
+
+   ```
+   curl.exe -i http://localhost:3010/api/livres
+   ```
+
 ---
 
 ## 10. Annexe pédagogique
