@@ -171,6 +171,30 @@ docker compose restart api
 Les scripts suivants de `oracle/app/` (logger, `cours`, `cours_tapi`, tests utPLSQL,
 `etudiant_api`…) se jouent de la même façon, au fil des leçons.
 
+### Vérifier logger
+
+Une fois `15_privileges_logger.sql` (en SYSTEM) puis `25_logger_install.sql` (en
+app3gb) joués, confirmez que logger fonctionne :
+
+```bash
+docker compose exec oracle-db sqlplus -s "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/26_verification_logger.sql"
+```
+
+Résultat attendu :
+
+| Élément | Valeur |
+|---|---|
+| Version de logger | `3.1.1` |
+| Niveau de journalisation | `DEBUG` |
+| Objets LOGGER invalides | `0` |
+| Paquetage LOGGER | `VALID` |
+| Jobs de purge actifs | `2` |
+| Essai d'écriture | `OK` |
+
+Le script écrit une ligne d'essai dans `LOGGER_LOGS`, puis l'efface : vous pouvez le
+relancer autant de fois que vous voulez. Une ligne `ABSENT` ou `ECHEC` veut dire que
+l'installation n'a pas abouti : rejouez `15` puis `25`.
+
 ### Installer utPLSQL (leçon 13)
 
 Les tests unitaires de `cours_tapi` (`40_*`, `41_*`) exigent le cadriciel utPLSQL
@@ -503,6 +527,7 @@ premier cours, pas pendant.
 │       ├── 15_privileges_logger.sql  privilèges requis par logger
 │       ├── 20_schema_applicatif.sql  tables + données de test
 │       ├── 25_logger_install.sql journalisation PL/SQL (logger)
+│       ├── 26_verification_logger.sql  vérifie que logger fonctionne
 │       ├── 30_cours.sql          table cours
 │       ├── 31_cours_tapi.spc/.bdy  paquetage cours_tapi (JSON:API)
 │       ├── 40_… à 45_…           tests utPLSQL de cours_tapi (45 : désinstaller utPLSQL)
