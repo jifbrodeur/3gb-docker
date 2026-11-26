@@ -5,6 +5,10 @@
 -- Prerequis : 30_cours.sql et 31_cours_tapi.spc deja joues, et le
 -- paquetage logger installe (25_logger_install.sql).
 --
+-- Correction par rapport a la lecon 13 : le WHEN OTHERS de ins_cours
+-- renvoyait 400 « Nom du cours requis » pour toute erreur ; il renvoie
+-- maintenant 500 « Erreur système », comme upd_cours et del_cours.
+--
 -- Execute connecte AVEC LE COMPTE APPLICATIF :
 --   docker compose exec oracle-db sqlplus "app3gb/<APP_USER_PASSWORD>@//localhost:1521/FREEPDB1" "@/sql/31_cours_tapi.bdy"
 -- =====================================================================
@@ -128,9 +132,9 @@ CREATE OR REPLACE PACKAGE BODY cours_tapi AS
             l_reponse := JSON_OBJECT(
                 'errors' VALUE JSON_ARRAY(
                 JSON_OBJECT(
-                    'status'  VALUE '400',
-                    'title'   VALUE 'Nom du cours requis',
-                    'detail'  VALUE 'Erreur nom_cours null lors de l’insertion du cours',
+                    'status'  VALUE '500',
+                    'title'   VALUE 'Erreur système',
+                    'detail'  VALUE 'Erreur OTHERS lors de l insertion du cours',
                     'code'    VALUE TO_CHAR(l_error_code),
                     'meta'    VALUE JSON_OBJECT(
                     'timestamp' VALUE TO_CHAR(SYSDATE, 'YYYY-MM-DD"T"HH24:MI:SS')
