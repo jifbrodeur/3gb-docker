@@ -17,3 +17,7 @@ Thumbs.db
 # Installateurs et images Docker hors ligne (1,7 Go) : jamais versionnes,
 # les etudiants tirent les images de Docker Hub a l'installation.
 images/
+
+# Configuration personnelle d'assistant IA local (OpenCode, Ollama)
+opencode.json
+Modelfile
