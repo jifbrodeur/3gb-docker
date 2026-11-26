@@ -1,0 +1,3 @@
+# Scripts bash joues dans le conteneur Linux : fins de ligne LF meme
+# sous Windows (sinon « $'\r': command not found »)
+*.sh text eol=lf

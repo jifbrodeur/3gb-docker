@@ -148,28 +148,44 @@ Le script `oracle/init/001_schema_base.sql` s'est joué **tout seul** à la cré
 la base. Il a préparé le terrain : tablespace `TBS_3GB`, rôle `R_APP_3GB`, profil
 `P_COURS_3GB`. Il ne se rejouera **jamais** tant que le volume `oracle-data` existe.
 
-Le compte applicatif et les tables, eux, se créent à la main — c'est volontaire :
-vous devez voir passer le DDL.
+Le compte applicatif et les tables se créent avec **une seule commande**, puis on
+redémarre l'API pour qu'elle ouvre son pool avec le compte qui existe désormais :
 
 ```bash
-# 1. Le compte applicatif (connecté en SYSTEM sur la PDB)
-docker compose exec oracle-db sqlplus "system/Oracle3GB_2026@//localhost:1521/FREEPDB1" "@/sql/10_utilisateur.sql"
-
-# 2. Le schéma applicatif (connecté AVEC le compte applicatif)
-docker compose exec oracle-db sqlplus "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/20_schema_applicatif.sql"
-```
-
-> Remplacez les mots de passe si vous avez modifié le `.env`.
-
-Puis redémarrez l'API, pour qu'elle ouvre son pool avec le compte qui existe
-désormais :
-
-```bash
+docker compose exec oracle-db bash /sql/00_installer.sh
 docker compose restart api
 ```
 
-Les scripts suivants de `oracle/app/` (logger, `cours`, `cours_tapi`, tests utPLSQL,
-`etudiant_api`…) se jouent de la même façon, au fil des leçons.
+L'installeur tourne **dans** le conteneur : la commande est la même sous PowerShell,
+macOS et Linux. Il joue les scripts de `oracle/app/` dans cet ordre, et le DDL de
+chacun défile à l'écran :
+
+| Script | Compte | Contenu |
+|---|---|---|
+| `10_utilisateur.sql` | SYSTEM | Le compte `app3gb` (sauté s'il existe déjà) |
+| `15_privileges_logger.sql` | SYSTEM | Les privilèges requis par logger |
+| `20_schema_applicatif.sql` | app3gb | Table `etudiant` et données de test |
+| `25_logger_install.sql` | app3gb | logger (sauté s'il est déjà installé : le rejouer viderait le journal) |
+| `30_cours.sql` | app3gb | Table `cours` et ses 5 cours |
+| `31_cours_tapi.spc/.bdy` | app3gb | Paquetage `cours_tapi` |
+| `110_etudiant.spc/.bdy` | app3gb | Paquetage `etudiant_api` |
+
+Il s'arrête au **premier script en erreur** (`ORA-`, `PLS-`, `SP2-`, erreur de
+compilation) et affiche son nom. Corrigez, puis relancez la même commande : tous les
+scripts sont idempotents. Attention, rejouer `20` et `30` remet `etudiant` et `cours`
+à leurs données de départ.
+
+> Les mots de passe de l'installeur sont ceux du `.env.example`. Si vous les avez
+> changés, modifiez aussi `10_utilisateur.sql` et le haut de `00_installer.sh`.
+
+Pour jouer un seul script, par exemple après l'avoir modifié :
+
+```bash
+docker compose exec oracle-db sqlplus "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/31_cours_tapi.bdy"
+```
+
+Les tests utPLSQL (`40_*`, `41_*`) ne font pas partie de l'installeur : utPLSQL doit
+d'abord être installé en SYS (voir plus bas).
 
 ### Vérifier logger
 
@@ -449,25 +465,15 @@ installation, ou volume supprimé par `docker compose down -v`) : seul
 à la main (étape 4). Pour le confirmer, le Test 1 de l'étape 5 échoue avec la même
 erreur.
 
-Jouez les scripts de `oracle/app/` dans l'ordre : `10` et `15` en **SYSTEM**, les
-autres en **app3gb**.
+Lancez l'installeur (étape 4), puis redémarrez l'API :
 
 ```bash
-docker compose exec oracle-db sqlplus "system/Oracle3GB_2026@//localhost:1521/FREEPDB1" "@/sql/10_utilisateur.sql"
-docker compose exec oracle-db sqlplus "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/20_schema_applicatif.sql"
-docker compose exec oracle-db sqlplus "system/Oracle3GB_2026@//localhost:1521/FREEPDB1" "@/sql/15_privileges_logger.sql"
-docker compose exec oracle-db sqlplus "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/25_logger_install.sql"
-docker compose exec oracle-db sqlplus "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/30_cours.sql"
-docker compose exec oracle-db sqlplus "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/31_cours_tapi.spc"
-docker compose exec oracle-db sqlplus "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/31_cours_tapi.bdy"
-docker compose exec oracle-db sqlplus "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/110_etudiant.spc"
-docker compose exec oracle-db sqlplus "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/110_etudiant.bdy"
+docker compose exec oracle-db bash /sql/00_installer.sh
 docker compose restart api
 ```
 
 Le `restart` est **obligatoire** : l'API a ouvert son pool au démarrage, quand le
-compte n'existait pas, et ne réessaie pas d'elle-même. Remplacez les mots de passe si
-vous avez modifié le `.env`. Les tests utPLSQL (`40_*`, `41_*`) ne sont pas
+compte n'existait pas, et ne réessaie pas d'elle-même. Les tests utPLSQL (`40_*`, `41_*`) ne sont pas
 nécessaires au fonctionnement de l'API.
 
 **Le navigateur sert une vieille version de mon JS**
@@ -516,13 +522,15 @@ premier cours, pas pendant.
 ├── docker-compose.yml          Les trois services, le réseau, le volume
 ├── .env.example                Modèle de configuration (à copier en .env)
 ├── .gitignore
+├── .gitattributes              *.sh en fins de ligne LF (même sous Windows)
 ├── README.md                   Ce guide
 ├── nginx/
 │   └── default.conf            Statique + reverse proxy /api
 ├── oracle/
 │   ├── init/
 │   │   └── 001_schema_base.sql   AUTO, une seule fois : tablespace, rôle, profil
-│   └── app/                      MANUEL, dans l'ordre des numéros :
+│   └── app/                      MANUEL, par 00_installer.sh ou un à un :
+│       ├── 00_installer.sh       installe le cours (0-199) ou une équipe (200-599)
 │       ├── 10_utilisateur.sql    compte applicatif
 │       ├── 15_privileges_logger.sql  privilèges requis par logger
 │       ├── 20_schema_applicatif.sql  tables + données de test
@@ -532,7 +540,8 @@ premier cours, pas pendant.
 │       ├── 31_cours_tapi.spc/.bdy  paquetage cours_tapi (JSON:API)
 │       ├── 40_… à 45_…           tests utPLSQL de cours_tapi (45 : désinstaller utPLSQL)
 │       ├── 99_verification.sql   test 1 de validation
-│       └── 110_etudiant.spc/.bdy paquetage etudiant_api
+│       ├── 110_etudiant.spc/.bdy paquetage etudiant_api
+│       └── 200_… à 599_…         scripts des équipes (une centaine chacune)
 ├── backend/
 │   ├── Dockerfile              node:24 + npm ci + node --watch-path
 │   ├── package.json            Dépendances, versions exactes
@@ -613,26 +622,91 @@ Les fichiers `voitures.mjs` de `routes/`, `controllers/` et `models/` sont un
 **gabarit** complet. Ils ne sont **pas** branchés dans `server.js` : `/api/voitures`
 répond donc 404 tant que vous ne l'avez pas activé.
 
+L'exemple suit l'équipe Bibli et son entité `livres` (préfixe `bibli_`, voir
+« Travail d'équipe » ci-dessous).
+
 1. Créez d'abord la table et la TAPI de l'entité dans la base, puis vérifiez-les avec
    SQL Developer ou utPLSQL.
-2. Copiez les trois fichiers `voitures.mjs` sous le nom de votre entité, par exemple
-   `livres.mjs`, dans `routes/`, `controllers/` et `models/`.
-3. Dans chaque copie, renommez les fonctions et les messages. Dans le modèle, ajustez
-   le bloc PL/SQL (`livre_tapi.ins_livre(...)`) et les liaisons aux paramètres réels
-   de votre TAPI.
+2. Copiez les trois fichiers `voitures.mjs` sous le nom de votre entité, préfixé par
+   votre équipe, par exemple `bibli_livres.mjs`, dans `routes/`, `controllers/` et
+   `models/`.
+3. Dans chaque copie, renommez les fonctions et les messages, et corrigez l'`import`
+   du contrôleur dans la route et celui du modèle dans le contrôleur. Dans le modèle,
+   ajustez le bloc PL/SQL (`bibli_livre_tapi.ins_livre(...)`) et les liaisons aux
+   paramètres réels de votre TAPI.
 4. Branchez le routeur dans `server.js`, **avant** le middleware 404. Sinon, le 404
    répond en premier :
 
    ```js
-   import livresRouter from "./routes/livres.mjs";
-   app.use("/api/livres", livresRouter);
+   import bibliLivresRouter from "./routes/bibli_livres.mjs";
+   app.use("/api/bibli/livres", bibliLivresRouter);
    ```
 
 5. Testez. `docker compose watch` synchronise les fichiers et l'API redémarre seule.
 
    ```
-   curl.exe -i http://localhost:3010/api/livres
+   curl.exe -i http://localhost:3010/api/bibli/livres
    ```
+
+### Travail d'équipe : un fork, une plage, un préfixe
+
+Chaque équipe travaille dans **son fork** de ce dépôt. Pour que l'enseignant puisse
+installer les quatre équipes dans la même base et la même API, chaque équipe a sa
+plage de numéros et son préfixe. Aucun nom ne peut alors entrer en conflit.
+
+| Équipe | Scripts SQL | Objets Oracle | Fichiers JS | Routes |
+|---|---|---|---|---|
+| SBDD | `200_…` à `299_…` | `sbdd_…` | `sbdd_<entites>.mjs` | `/api/sbdd/…` |
+| RJWJ | `300_…` à `399_…` | `rjwj_…` | `rjwj_<entites>.mjs` | `/api/rjwj/…` |
+| Bibli | `400_…` à `499_…` | `bibli_…` | `bibli_<entites>.mjs` | `/api/bibli/…` |
+| Accord | `500_…` à `599_…` | `accord_…` | `accord_<entites>.mjs` | `/api/accord/…` |
+
+Le préfixe s'applique à **tous** les objets Oracle de l'équipe : tables, séquences,
+déclencheurs, contraintes, paquetages TAPI et paquetages de tests.
+
+**Numéroter les scripts.** Dans sa plage, l'équipe numérote comme elle veut.
+L'installeur joue les scripts dans l'ordre des numéros et, à numéro égal, `.sql`, puis
+`.spc`, puis `.bdy`. Exemple pour Bibli :
+
+```
+oracle/app/
+├── 410_bibli_livre.sql              table, séquence, déclencheur, données
+├── 420_bibli_livre_tapi.spc         spécification de la TAPI
+├── 420_bibli_livre_tapi.bdy         corps de la TAPI
+├── 430_test_bibli_livre_tapi.spc    tests utPLSQL
+├── 430_test_bibli_livre_tapi.bdy
+└── 431_exec_tests_bibli.sql         lance les tests
+```
+
+**Installer.** Rien à configurer : un nouveau script est pris en compte dès qu'il
+porte un numéro de la plage.
+
+```bash
+docker compose exec oracle-db bash /sql/00_installer.sh bibli
+docker compose restart api
+```
+
+Les scripts de l'équipe tournent avec le compte `app3gb`, après ceux du cours.
+Sur une base neuve, lancez d'abord l'installeur sans argument (le cours). Les tests
+utPLSQL de la plage ne passent que si utPLSQL est installé (section 4). Chaque script
+doit pouvoir être **rejoué** sans erreur, comme `30_cours.sql` : supprimez la table
+ou la séquence si elle existe avant de la recréer.
+
+**Créer le fork.** Un membre de l'équipe clique sur **Fork** sur la page GitHub du
+dépôt et ajoute les trois autres comme collaborateurs (Settings → Collaborators).
+Chacun clone ensuite **le fork**, pas le dépôt du cours :
+
+```bash
+git clone https://github.com/<compte>/3gb-docker.git
+```
+
+**Recevoir les mises à jour du cours.** Sur la page du fork, bouton **Sync fork**,
+puis `git pull` dans chaque clone. Comme l'équipe ne touche qu'à ses propres fichiers
+et à deux lignes de `server.js`, la synchronisation se fait sans conflit.
+
+**Correction.** L'enseignant ajoute chaque fork comme remote, fusionne les quatre
+dans une branche et lance `00_installer.sh tout`, qui joue le cours puis les quatre
+plages.
 
 ---
 
