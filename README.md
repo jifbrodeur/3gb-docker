@@ -362,6 +362,36 @@ suivi de `Waiting for file changes...` : corrigez et sauvegardez), un module man
 (voir l'encadré ci-dessus), ou le pool Oracle qui n'a pas pu s'ouvrir
 (`[db] Tentative 10/10 echouee` : vérifiez `.env` et `docker compose ps`).
 
+**`500` sur `/api/...` et `ORA-01017: invalid credential or not authorized` dans les logs**
+Les trois conteneurs tournent, le site s'affiche, mais chaque appel à l'API répond
+`500`. Le compte `app3gb` n'existe pas dans la base : c'est presque toujours ça,
+rarement un mauvais mot de passe. Cela arrive avec une base neuve (première
+installation, ou volume supprimé par `docker compose down -v`) : seul
+`oracle/init/001_schema_base.sql` se joue tout seul, le compte et les tables se créent
+à la main (étape 4). Pour le confirmer, le Test 1 de l'étape 5 échoue avec la même
+erreur.
+
+Jouez les scripts de `oracle/app/` dans l'ordre : `10` et `15` en **SYSTEM**, les
+autres en **app3gb**.
+
+```bash
+docker compose exec oracle-db sqlplus "system/Oracle3GB_2026@//localhost:1521/FREEPDB1" "@/sql/10_utilisateur.sql"
+docker compose exec oracle-db sqlplus "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/20_schema_applicatif.sql"
+docker compose exec oracle-db sqlplus "system/Oracle3GB_2026@//localhost:1521/FREEPDB1" "@/sql/15_privileges_logger.sql"
+docker compose exec oracle-db sqlplus "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/25_logger_install.sql"
+docker compose exec oracle-db sqlplus "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/30_cours.sql"
+docker compose exec oracle-db sqlplus "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/31_cours_tapi.spc"
+docker compose exec oracle-db sqlplus "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/31_cours_tapi.bdy"
+docker compose exec oracle-db sqlplus "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/110_etudiant.spc"
+docker compose exec oracle-db sqlplus "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/110_etudiant.bdy"
+docker compose restart api
+```
+
+Le `restart` est **obligatoire** : l'API a ouvert son pool au démarrage, quand le
+compte n'existait pas, et ne réessaie pas d'elle-même. Remplacez les mots de passe si
+vous avez modifié le `.env`. Les tests utPLSQL (`40_*`, `41_*`) ne sont pas
+nécessaires au fonctionnement de l'API.
+
 **Le navigateur sert une vieille version de mon JS**
 Le `Cache-Control: no-store` de `nginx/default.conf` devrait l'empêcher. Sinon,
 rechargement forcé : Ctrl-Maj-R (Windows) ou Cmd-Maj-R (Mac).
