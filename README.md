@@ -171,6 +171,60 @@ docker compose restart api
 Les scripts suivants de `oracle/app/` (logger, `cours`, `cours_tapi`, tests utPLSQL,
 `etudiant_api`…) se jouent de la même façon, au fil des leçons.
 
+### Installer utPLSQL (leçon 13)
+
+Les tests unitaires de `cours_tapi` (`40_*`, `41_*`) exigent le cadriciel utPLSQL
+v3.2.3, installé **une seule fois** dans son propre schéma `UT3`. Il n'est pas fourni
+dans le dépôt.
+
+1. Téléchargez `utPLSQL.zip` depuis la page de la version :
+   <https://github.com/utPLSQL/utPLSQL/releases/tag/v.3.2.3>
+   (attention au point dans `v.3.2.3`), puis décompressez-le. Vous obtenez un
+   dossier `utPLSQL`, qui contient un sous-dossier `source`.
+
+2. Copiez ce sous-dossier dans le conteneur Oracle. Remplacez le chemin par celui
+   où vous avez décompressé l'archive :
+
+   ```bash
+   docker compose cp ~/Downloads/utPLSQL/source oracle-db:/tmp/utplsql_source
+   docker compose exec -u root oracle-db chown -R oracle:oinstall /tmp/utplsql_source
+   ```
+
+   La seconde commande est **obligatoire** : `docker compose cp` garde le propriétaire
+   de votre poste, et l'usager `oracle` du conteneur ne pourrait pas écrire dans le
+   dossier. L'installateur y crée un fichier temporaire ; sans ce droit, il boucle
+   sur `Enter value for action_type:` (sortez avec Ctrl-C).
+
+3. Lancez l'installateur, connecté en **SYS** (il crée un usager et des synonymes
+   publics). Comptez une à deux minutes :
+
+   ```bash
+   docker compose exec -w /tmp/utplsql_source oracle-db sqlplus "sys/Oracle3GB_2026@//localhost:1521/FREEPDB1 as sysdba" "@install_headless.sql"
+   ```
+
+4. Installez puis exécutez les tests, connecté avec le compte applicatif :
+
+   ```bash
+   docker compose exec oracle-db sqlplus "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/40_test_cours_tapi.spc"
+   docker compose exec oracle-db sqlplus "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/40_test_cours_tapi.bdy"
+   docker compose exec oracle-db sqlplus "app3gb/App3GB_2026@//localhost:1521/FREEPDB1" "@/sql/41_exec_tests_cours_tapi.sql"
+   ```
+
+   Résultat attendu : `8 tests, 0 failed, 0 errored`.
+
+utPLSQL vit dans le volume `oracle-data` : il survit aux redémarrages, mais doit être
+réinstallé après un `docker compose down -v`.
+
+Si vous avez oublié le `chown` et vu la boucle `action_type`, le schéma `UT3` est déjà
+installé : seuls les synonymes publics manquent. Faites le `chown` de l'étape 2, puis :
+
+```bash
+docker compose exec -w /tmp/utplsql_source oracle-db sqlplus "sys/Oracle3GB_2026@//localhost:1521/FREEPDB1 as sysdba" "@create_synonyms_and_grants_for_public.sql" UT3
+```
+
+Pour toute autre erreur d'installation, nettoyez avec `45_desinstaller_utplsql.sql` (en SYS, voir l'en-tête du
+fichier), puis recommencez à l'étape 3.
+
 ---
 
 ## 5. Valider l'environnement
